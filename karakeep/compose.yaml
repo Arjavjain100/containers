@@ -1,0 +1,70 @@
+configs:
+  karakeep-ts-serve:
+    content: |
+      {"TCP":{"443":{"HTTPS":true}},
+      "Web":{"$${TS_CERT_DOMAIN}:443":
+          {"Handlers":{"/":
+          {"Proxy":"http://127.0.0.1:3000"}}}},
+      "AllowFunnel":{"$${TS_CERT_DOMAIN}:443":false}}
+
+services:
+  karakeep-ts:
+    image: tailscale/tailscale:latest
+    container_name: karakeep-ts
+    hostname: karakeep
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/serve.json
+      - TS_USERSPACE=true
+    configs:
+      - source: karakeep-ts-serve
+        target: /config/serve.json
+    volumes:
+      - karakeep-ts-state:/var/lib/tailscale
+    restart: unless-stopped
+
+  karakeep-web:
+    image: ghcr.io/karakeep-app/karakeep:${KARAKEEP_VERSION:-release}
+    restart: unless-stopped
+    volumes:
+      - karakeep-data:/data
+    env_file:
+      - .env
+    network_mode: service:karakeep-ts
+    environment:
+      MEILI_ADDR: http://karakeep-meilisearch:7700
+      BROWSER_WEB_URL: http://karakeep-chrome:9222
+      DATA_DIR: /data # DON'T CHANGE THIS
+    labels:
+      - homepage.group=Productivity
+      - homepage.name=KaraKeep
+      - homepage.icon=karakeep.png
+      - homepage.href=https://karakeep.chimera-ling.ts.net
+      - homepage.description=Generate karaoke sheets
+  karakeep-chrome:
+    image: gcr.io/zenika-hub/alpine-chrome:124
+    container_name: karakeep-chrome
+    restart: unless-stopped
+    command:
+      - --no-sandbox
+      - --disable-gpu
+      - --disable-dev-shm-usage
+      - --remote-debugging-address=0.0.0.0
+      - --remote-debugging-port=9222
+      - --hide-scrollbars
+  karakeep-meilisearch:
+    image: getmeili/meilisearch:v1.13.3
+    container_name: karakeep-meilisearch
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - karakeep-meilisearch:/meili_data
+
+volumes:
+  karakeep-meilisearch:
+  karakeep-data:
+  karakeep-ts-state:

@@ -1,0 +1,61 @@
+configs:
+  koillection-ts-serve:
+    content: |
+      {"TCP":{"443":{"HTTPS":true}},
+      "Web":{"$${TS_CERT_DOMAIN}:443":
+          {"Handlers":{"/":
+          {"Proxy":"http://127.0.0.1:80"}}}},
+      "AllowFunnel":{"$${TS_CERT_DOMAIN}:443":false}}
+
+services:
+  koillection-ts:
+    image: tailscale/tailscale:latest
+    container_name: koillection-ts
+    hostname: koillection
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/serve.json
+      - TS_USERSPACE=true
+    configs:
+      - source: koillection-ts-serve
+        target: /config/serve.json
+    volumes:
+      - koillection-ts-state:/var/lib/tailscale
+    restart: unless-stopped
+
+  koillection:
+    image: koillection/koillection
+    container_name: koillection
+    restart: unless-stopped
+    env_file:
+        - .env
+    depends_on:
+        - db
+    volumes:
+        - koillection-data:/uploads
+    network_mode: service:koillection-ts
+    labels:
+      - homepage.group=Media
+      - homepage.name=Koillection
+      - homepage.icon=koillection.png
+      - homepage.href=https://koillection.chimera-ling.ts.net
+      - homepage.description=Artwork collection manager
+
+  db:
+    image: postgres:16
+    container_name: db
+    restart: unless-stopped
+    env_file:
+        - .env
+    environment:
+        - POSTGRES_DB=${DB_NAME}
+        - POSTGRES_USER=${DB_USER}
+        - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+        - koillection-pgdata:/var/lib/postgresql/data
+
+volumes:
+  koillection-data:
+  koillection-pgdata:
+  koillection-ts-state:

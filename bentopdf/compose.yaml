@@ -1,0 +1,45 @@
+configs:
+  bentopdf-ts-serve:
+    content: |
+      {"TCP":{"443":{"HTTPS":true}},
+      "Web":{"$${TS_CERT_DOMAIN}:443":
+          {"Handlers":{"/":
+          {"Proxy":"http://127.0.0.1:8080"}}}},
+      "AllowFunnel":{"$${TS_CERT_DOMAIN}:443":false}}
+
+services:
+  bentopdf-ts:
+    image: tailscale/tailscale:latest
+    container_name: bentopdf-ts
+    ports:
+      - "8080:8080"
+    hostname: bentopdf
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/serve.json
+      - TS_USERSPACE=true
+    configs:
+      - source: bentopdf-ts-serve
+        target: /config/serve.json
+    volumes:
+      - bentopdf-ts-state:/var/lib/tailscale
+    restart: unless-stopped
+
+  bentopdf:
+    image: ghcr.io/alam00000/bentopdf:latest
+    container_name: bentopdf
+    restart: unless-stopped
+    network_mode: service:bentopdf-ts
+    env_file:
+      - .env
+    labels:
+      - homepage.group=Utilities
+      - homepage.name=BentoPDF
+      - homepage.icon=bentopdf.png
+      - homepage.href=https://bentopdf.chimera-ling.ts.net
+      - homepage.description=PDF conversion tool
+    
+
+volumes:
+  bentopdf-ts-state:

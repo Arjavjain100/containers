@@ -1,0 +1,28 @@
+services:
+  protein:
+    image: arjavjain2710/protein:latest
+    init: true
+    container_name: protein
+    restart: unless-stopped 
+    volumes:
+      - protein-data:/app/data
+    env_file:
+      - .env
+    environment:
+      - DATABASE_PATH=/app/data/subscriptions.sqlite
+      - GMAIL_USER=${GMAIL_USER}
+      - GMAIL_PASS=${GMAIL_PASS}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m" 
+        max-file: "3"  
+    labels:
+      - homepage.group=Utilities
+      - homepage.name=Protein
+      - homepage.icon=protein.png
+      - homepage.href=https://protein.chimera-ling.ts.net
+      - homepage.description=Subscription tracker
+        
+volumes:
+  protein-data:

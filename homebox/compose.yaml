@@ -1,0 +1,49 @@
+configs:
+  homebox-ts-serve:
+    content: |
+      {"TCP":{"443":{"HTTPS":true}},
+      "Web":{"$${TS_CERT_DOMAIN}:443":
+          {"Handlers":{"/":
+          {"Proxy":"http://127.0.0.1:7745"}}}},
+      "AllowFunnel":{"$${TS_CERT_DOMAIN}:443":false}}
+
+services:
+  homebox-ts:
+    image: tailscale/tailscale:latest
+    container_name: homebox-ts
+    hostname: homebox
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/serve.json
+      - TS_USERSPACE=true
+    configs:
+      - source: homebox-ts-serve
+        target: /config/serve.json
+    volumes:
+      - homebox-ts-state:/var/lib/tailscale
+    restart: unless-stopped
+
+  homebox:
+    image: ghcr.io/sysadminsmedia/homebox:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+        - HBOX_LOG_LEVEL=info
+        - HBOX_LOG_FORMAT=text
+        - HBOX_WEB_MAX_UPLOAD_SIZE=10
+        - HBOX_OPTIONS_ALLOW_ANALYTICS=false
+    volumes:
+        - homebox-data:/data/
+    network_mode: service:homebox-ts
+    labels:
+      - homepage.group=Utilities
+      - homepage.name=Homebox
+      - homepage.icon=homebox.png
+      - homepage.href=https://homebox.chimera-ling.ts.net
+      - homepage.description=Personal server dashboard
+
+volumes:
+  homebox-data:
+  homebox-ts-state:

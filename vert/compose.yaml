@@ -1,0 +1,53 @@
+configs:
+  vert-ts-serve:
+    content: |
+      {"TCP":{"443":{"HTTPS":true}},
+      "Web":{"$${TS_CERT_DOMAIN}:443":
+          {"Handlers":{"/":
+          {"Proxy":"http://127.0.0.1:80"}}}},
+      "AllowFunnel":{"$${TS_CERT_DOMAIN}:443":false}}
+
+services:
+  vert-ts:
+    image: tailscale/tailscale:latest
+    container_name: vert-ts
+    hostname: vert
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/serve.json
+      - TS_USERSPACE=true
+    configs:
+      - source: vert-ts-serve
+        target: /config/serve.json
+    volumes:
+      - vert-ts-state:/var/lib/tailscale
+    restart: unless-stopped
+
+  vert:
+    container_name: vert
+    image: ghcr.io/vert-sh/vert:latest
+    build:
+      context: .
+      args:
+        PUB_HOSTNAME: ${PUB_HOSTNAME:-localhost:5173}
+        PUB_PLAUSIBLE_URL: ${PUB_PLAUSIBLE_URL:-}
+        PUB_ENV: ${PUB_ENV:-production}
+        PUB_DISABLE_ALL_EXTERNAL_REQUESTS: ${PUB_DISABLE_ALL_EXTERNAL_REQUESTS:-false}
+        PUB_VERTD_URL: ${PUB_VERTD_URL:-}
+        PUB_DONATION_URL: ${PUB_DONATION_URL:-https://donations.vert.sh}
+        PUB_STRIPE_KEY: ${PUB_STRIPE_KEY}
+    restart: unless-stopped
+    network_mode: service:vert-ts
+    env_file:
+      - .env
+    labels:
+      - homepage.group=Development
+      - homepage.name=Vert
+      - homepage.icon=vert.png
+      - homepage.href=https://vert.chimera-ling.ts.net
+      - homepage.description=Website builder
+    
+
+volumes:
+  vert-ts-state:

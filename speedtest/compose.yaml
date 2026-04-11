@@ -1,0 +1,46 @@
+configs:
+  speedtest-ts-serve:
+    content: |
+      {"TCP":{"443":{"HTTPS":true}},
+      "Web":{"$${TS_CERT_DOMAIN}:443":
+          {"Handlers":{"/":
+          {"Proxy":"http://127.0.0.1:80"}}}},
+      "AllowFunnel":{"$${TS_CERT_DOMAIN}:443":false}}
+
+
+services:
+  speedtest-ts:
+    image: tailscale/tailscale:latest
+    container_name: speedtest-ts
+    hostname: speedtest
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/serve.json
+      - TS_USERSPACE=true
+    configs:
+      - source: speedtest-ts-serve
+        target: /config/serve.json
+    volumes:
+      - speedtest-ts-state:/var/lib/tailscale
+    restart: unless-stopped
+
+  speedtest:
+    container_name: speedtest
+    image: henrywhitaker3/speedtest-tracker
+    network_mode: service:speedtest-ts
+    volumes:
+      - speedtest-data:/config
+    environment:
+      - TZ=${TZ}
+      - OOKLA_EULA_GDPR=${OOKLA_EULA_GDPR}
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "10"
+        max-size: "200k"
+    restart: unless-stopped
+
+volumes:
+  speedtest-ts-state:
+  speedtest-data:

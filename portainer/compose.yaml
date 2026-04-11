@@ -1,0 +1,47 @@
+configs:
+  portainer-ts-serve:
+    content: |
+      {"TCP":{"443":{"HTTPS":true}},
+      "Web":{"$${TS_CERT_DOMAIN}:443":
+          {"Handlers":{"/":
+          {"Proxy":"http://127.0.0.1:9000"}}}},
+      "AllowFunnel":{"$${TS_CERT_DOMAIN}:443":false}}
+
+services:
+  portainer-ts:
+    image: tailscale/tailscale:latest
+    container_name: portainer-ts
+    hostname: portainer
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/serve.json
+      - TS_USERSPACE=true
+    configs:
+      - source: portainer-ts-serve
+        target: /config/serve.json
+    volumes:
+      - portainer-ts-state:/var/lib/tailscale
+    restart: unless-stopped
+
+  portainer:
+    container_name: portainer
+    image: portainer/portainer-ce:sts
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    network_mode: service:portainer-ts
+    labels:
+      - homepage.group=Admin
+      - homepage.name=Portainer
+      - homepage.icon=portainer.png
+      - homepage.href=https://portainer.chimera-ling.ts.net
+      - homepage.description=Docker container manager
+    
+
+volumes:
+  portainer_data:
+  portainer-ts-state:
