@@ -17,6 +17,19 @@ loki.source.docker "logs" {
     forward_to = [loki.write.loki.receiver]
 }
 
+local.file_match "server_logs" {
+    path_targets = [
+        { "__path__" = "/var/log/*.log", "job" = "server_logs" },
+        { "__path__" = "/var/log/syslog", "job" = "server_logs" },
+        { "__path__" = "/var/log/auth.log", "job" = "server_logs" },
+    ]
+}
+
+loki.source.file "server_logs" {
+    targets    = local.file_match.server_logs.targets
+    forward_to = [loki.write.loki.receiver]
+}
+
 loki.write "loki" {
     endpoint {
         url = "http://loki:3100/loki/api/v1/push"
