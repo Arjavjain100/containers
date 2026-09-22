@@ -30,10 +30,11 @@ services:
     env_file:
       - .env
     environment:
-        - HBOX_LOG_LEVEL=info
-        - HBOX_LOG_FORMAT=text
-        - HBOX_WEB_MAX_UPLOAD_SIZE=10
-        - HBOX_OPTIONS_ALLOW_ANALYTICS=false
+         HBOX_LOG_LEVEL: info
+         HBOX_LOG_FORMAT: text
+         HBOX_WEB_MAX_UPLOAD_SIZE: 10
+         HBOX_OPTIONS_ALLOW_ANALYTICS: false
+         HBOX_AUTH_API_KEY_PEPPER: ${HBOX_AUTH_API_KEY_PEPPER}
     volumes:
         - homebox-data:/data/
     network_mode: service:homebox-ts
