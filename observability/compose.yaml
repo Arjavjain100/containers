@@ -104,8 +104,6 @@ services:
     restart: unless-stopped
     ports:
       - "9221:9221"
-    volumes:
-      - ./pve.yaml:/etc/prometheus/pve.yml:ro
     environment:
       - PVE_USER=${PVE_USER}
       - PVE_TOKEN_NAME=${PVE_TOKEN_NAME}
